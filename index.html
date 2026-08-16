@@ -348,14 +348,17 @@
   <script>
     const mouseCore=document.createElement('i');
     mouseCore.className='mouse-neon-core';
+    mouseCore.style.opacity='0';
     document.body.appendChild(mouseCore);
     let lastMouseX=innerWidth/2;
     let lastMouseY=innerHeight/2;
     const placeMouseCore=()=>{mouseCore.style.left=lastMouseX+'px';mouseCore.style.top=lastMouseY+'px'};
     placeMouseCore();
-    window.addEventListener('pointermove',event=>{
+    document.addEventListener('pointermove',event=>{
+      if(event.pointerType==='touch')return;
       lastMouseX=event.clientX;
       lastMouseY=event.clientY;
+      mouseCore.style.opacity='1';
       placeMouseCore();
       for(let index=0;index<5;index++){
         const particle=document.createElement('i');
@@ -375,8 +378,8 @@
     },{passive:true});
     window.addEventListener('scroll',()=>requestAnimationFrame(placeMouseCore),{passive:true});
     window.addEventListener('resize',()=>{lastMouseX=Math.min(lastMouseX,innerWidth);lastMouseY=Math.min(lastMouseY,innerHeight);placeMouseCore()},{passive:true});
-    window.addEventListener('pointerleave',()=>{mouseCore.style.opacity='0'});
-    window.addEventListener('pointerenter',()=>{mouseCore.style.opacity='1'});
+    document.addEventListener('mouseleave',()=>{mouseCore.style.opacity='0'});
+    document.addEventListener('mouseenter',()=>{mouseCore.style.opacity='1'});
     setInterval(()=>{const particles=document.querySelectorAll('.mouse-neon-particle');if(particles.length>80)[...particles].slice(0,particles.length-80).forEach(particle=>particle.remove())},250);
   </script>
 </body>
