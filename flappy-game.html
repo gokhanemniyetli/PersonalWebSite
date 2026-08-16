@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Neon Uçuş</title>
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#061222;color:#fff;font:16px monospace}.wrap{text-align:center}canvas{width:min(92vw,420px);height:auto;border:2px solid #00fff0;background:linear-gradient(#102a54,#07121d)}button{margin:14px;padding:10px 18px;background:#ff168f;color:#fff;border:0;font:inherit;cursor:pointer}
+</style>
+</head>
+<body>
+<main class="wrap"><h1>NEON UÇUŞ</h1><p>Skor: <b id="score">0</b> | Boşluk / Enter / Tıkla</p><canvas id="game" width="420" height="560" tabindex="0"></canvas><br><button id="reset">YENİDEN BAŞLAT</button></main>
+<script>
+const canvas=document.querySelector('#game');
+const ctx=canvas.getContext('2d');
+const scoreElement=document.querySelector('#score');
+let bird,pipes,score,gameOver,started,lastFrame,animationId;
+function reset(){cancelAnimationFrame(animationId);bird={x:80,y:280,velocity:0};pipes=[];score=0;gameOver=false;started=false;lastFrame=0;scoreElement.textContent='0';animationId=requestAnimationFrame(loop);canvas.focus()}
+function flap(){if(gameOver){reset();return}started=true;bird.velocity=-7}
+function handleKey(event){if(event.code==='Space'||event.key===' '||event.key==='Enter'){event.preventDefault();flap()}}
+window.addEventListener('keydown',handleKey,{passive:false});
+canvas.addEventListener('pointerdown',event=>{event.preventDefault();flap()},{passive:false});
+document.querySelector('#reset').addEventListener('click',reset);
+function loop(time){if(gameOver){draw();ctx.fillStyle='#ff168f';ctx.font='28px monospace';ctx.fillText('OYUN BİTTİ',115,280);return}if(!started){draw();animationId=requestAnimationFrame(loop);return}const delta=Math.min((time-lastFrame)/16,2);lastFrame=time;bird.velocity+=.35*delta;bird.y+=bird.velocity*delta;if(!pipes.length||pipes[pipes.length-1].x<230){const gap=145;const top=60+Math.random()*230;pipes.push({x:420,top,gap,passed:false})}pipes.forEach(pipe=>pipe.x-=2.8*delta);pipes=pipes.filter(pipe=>pipe.x>-60);pipes.forEach(pipe=>{if(!pipe.passed&&pipe.x+55<bird.x){pipe.passed=true;score++;scoreElement.textContent=score}if(bird.x+16>pipe.x&&bird.x-16<pipe.x+55&&(bird.y-16<pipe.top||bird.y+16>pipe.top+pipe.gap))gameOver=true});if(bird.y<0||bird.y>560)gameOver=true;draw();animationId=requestAnimationFrame(loop)}
+function draw(){ctx.clearRect(0,0,420,560);ctx.fillStyle='#00fff0';pipes.forEach(pipe=>{ctx.fillRect(pipe.x,0,55,pipe.top);ctx.fillRect(pipe.x,pipe.top+pipe.gap,55,560)});ctx.fillStyle='#fff000';ctx.beginPath();ctx.arc(bird.x,bird.y,16,0,Math.PI*2);ctx.fill();if(!started){ctx.fillStyle='#fff';ctx.font='16px monospace';ctx.textAlign='center';ctx.fillText('BOŞLUK / TIKLA İLE BAŞLA',210,520);ctx.textAlign='start'}}
+reset();
+</script>
+</body>
+</html>

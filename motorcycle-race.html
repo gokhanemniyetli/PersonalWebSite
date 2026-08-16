@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Motosiklet Yarışı</title>
+<style>
+:root{--accent:#ff9900}
+*{margin:0;padding:0;box-sizing:border-box}body{background:#000;overflow:hidden;font-family:'Courier New',monospace}canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;color:#fff;z-index:2}
+.panel{position:absolute;top:16px;left:16px;background:rgba(0,0,0,.55);padding:10px 14px;border:1px solid var(--accent);border-radius:4px;font-size:12px;line-height:1.8}
+.panel b{color:var(--accent)}
+#msg{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center;background:rgba(0,0,0,.78);padding:24px 32px;border:1px solid var(--accent);border-radius:6px;display:none}
+#msg button{margin-top:14px;padding:10px 18px;background:var(--accent);border:0;color:#05070a;font:bold 12px 'Courier New',monospace;cursor:pointer;pointer-events:all}
+#tip{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.55);white-space:nowrap;text-align:center}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="panel" id="stats">TUR 0/3</div>
+  <div id="msg"><h2 id="msgTitle">YARIŞ BİTTİ</h2><p id="msgText"></p><button id="msgBtn">YENİDEN BAŞLA</button></div>
+  <div id="tip">W/S veya ↑/↓: GAZ-FREN | A/D veya ←/→: DÖN | R: YENİDEN BAŞLA</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x224422);scene.fog=new THREE.FogExp2(0x224422,0.0035);
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,0.1,700);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));document.body.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0xffffff,1.2));
+const sun=new THREE.DirectionalLight(0xffffff,1.2);sun.position.set(120,180,60);scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(700,700),new THREE.MeshLambertMaterial({color:0x2f5a2f}));ground.rotation.x=-Math.PI/2;scene.add(ground);
+
+const CP_COUNT=8,CP_RADIUS=140;
+const checkpoints=[];
+for(let i=0;i<CP_COUNT;i++){
+  const angle=(i/CP_COUNT)*Math.PI*2;
+  const x=Math.cos(angle)*CP_RADIUS,z=Math.sin(angle)*CP_RADIUS;
+  const mesh=new THREE.Mesh(new THREE.TorusGeometry(7,0.6,8,20),new THREE.MeshBasicMaterial({color:0x666666}));
+  mesh.position.set(x,0.6,z);mesh.rotation.x=Math.PI/2;scene.add(mesh);
+  checkpoints.push({mesh,x,z});
+}
+function highlightCP(idx){checkpoints.forEach((c,i)=>c.mesh.material.color.set(i===idx%CP_COUNT?0xffe45e:0x666666));}
+
+function makeBike(color){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.7,3.2),new THREE.MeshLambertMaterial({color}));body.position.y=0.9;g.add(body);
+  const rider=new THREE.Mesh(new THREE.SphereGeometry(0.4,8,8),new THREE.MeshLambertMaterial({color:0xf0c890}));rider.position.set(0,1.6,0.2);g.add(rider);
+  scene.add(g);return g;
+}
+const bike=makeBike(0xff9900);
+const aiBike=makeBike(0x3388ff);
+
+let px=CP_RADIUS,pz=0,heading=Math.PI/2,speed=0,playerCP=0,playerLap=0;
+let aix=CP_RADIUS,aiz=0,aiHeading=Math.PI/2,aiCP=0,aiLap=0;
+let over=false;
+const keys={};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='r')restart();if(e.code==='Space')e.preventDefault();});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+function updatePlayer(dt){
+  const up=keys['w']||keys['arrowup'],down=keys['s']||keys['arrowdown'],left=keys['a']||keys['arrowleft'],right=keys['d']||keys['arrowright'];
+  if(up)speed=Math.min(speed+22*dt,40);else if(down)speed=Math.max(speed-20*dt,-10);else speed*=Math.pow(0.92,dt*60);
+  const turnAmt=2.4*dt*(0.3+0.7*Math.min(1,Math.abs(speed)/40))*(speed<0?-1:1);
+  if(left)heading+=turnAmt;if(right)heading-=turnAmt;
+  px+=Math.sin(heading)*speed*dt;pz+=Math.cos(heading)*speed*dt;
+  bike.position.set(px,0.4,pz);bike.rotation.y=heading;bike.rotation.z=(left?0.18:right?-0.18:0);
+  const cp=checkpoints[playerCP%CP_COUNT];
+  if(Math.hypot(px-cp.x,pz-cp.z)<10){playerCP++;if(playerCP%CP_COUNT===0){playerLap++;if(playerLap>=3){endGame('KAZANDIN!');return;}}}
+}
+function updateAI(dt){
+  const cp=checkpoints[aiCP%CP_COUNT];
+  const targetAngle=Math.atan2(aix-cp.x,aiz-cp.z)+Math.PI;
+  let diff=Math.atan2(Math.sin(targetAngle-aiHeading),Math.cos(targetAngle-aiHeading));
+  aiHeading+=diff*1.6*dt;
+  const aiSpeed=26+Math.sin(Date.now()*0.001)*4;
+  aix+=Math.sin(aiHeading)*aiSpeed*dt;aiz+=Math.cos(aiHeading)*aiSpeed*dt;
+  aiBike.position.set(aix,0.4,aiz);aiBike.rotation.y=aiHeading;
+  if(Math.hypot(aix-cp.x,aiz-cp.z)<10){aiCP++;if(aiCP%CP_COUNT===0){aiLap++;if(aiLap>=3){endGame('AI KAZANDI!');return;}}}
+}
+function endGame(title){over=true;document.querySelector('#msg').style.display='block';document.querySelector('#msgTitle').textContent=title;document.querySelector('#msgText').textContent='Senin tur: '+playerLap+' | AI tur: '+aiLap;}
+function restart(){px=CP_RADIUS;pz=0;heading=Math.PI/2;speed=0;playerCP=0;playerLap=0;aix=CP_RADIUS;aiz=0;aiHeading=Math.PI/2;aiCP=0;aiLap=0;over=false;document.querySelector('#msg').style.display='none';}
+document.querySelector('#msgBtn').onclick=restart;
+function updateHUD(){highlightCP(playerCP);document.querySelector('#stats').innerHTML='TUR <b>'+playerLap+'/3</b><br>SIRA <b>'+(playerLap+playerCP/CP_COUNT>aiLap+aiCP/CP_COUNT?'1.':'2.')+'</b><br>HIZ <b>'+Math.abs(Math.round(speed))+'</b>';}
+function updateCamera(){const tx=px-Math.sin(heading)*10,tz=pz-Math.cos(heading)*10;camera.position.lerp(new THREE.Vector3(tx,4.5,tz),0.14);camera.lookAt(px,1,pz);}
+const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),0.05);if(!over){updatePlayer(dt);updateAI(dt);}updateHUD();updateCamera();renderer.render(scene,camera);}
+animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Uçak Simülatörü</title>
+<style>
+:root{--accent:#6ad1ff}
+*{margin:0;padding:0;box-sizing:border-box}body{background:#000;overflow:hidden;font-family:'Courier New',monospace}canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;color:#fff;z-index:2}
+.panel{position:absolute;top:16px;left:16px;background:rgba(0,0,0,.55);padding:10px 14px;border:1px solid var(--accent);border-radius:4px;font-size:12px;line-height:1.8}
+.panel b{color:var(--accent)}
+#msg{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center;background:rgba(0,0,0,.78);padding:24px 32px;border:1px solid var(--accent);border-radius:6px;display:none}
+#msg button{margin-top:14px;padding:10px 18px;background:var(--accent);border:0;color:#05070a;font:bold 12px 'Courier New',monospace;cursor:pointer;pointer-events:all}
+#tip{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.55);white-space:nowrap;text-align:center}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="panel" id="stats">HALKA 0/8</div>
+  <div id="msg"><h2 id="msgTitle">DÜŞTÜN</h2><p id="msgText">Halka: 0/8</p><button id="msgBtn">YENİDEN BAŞLA</button></div>
+  <div id="tip">W/S: GAZ | ↑/↓: DALIŞ-TIRMANIŞ | A/D veya ←/→: DÖN | R: YENİDEN BAŞLA</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x8fd3ff);scene.fog=new THREE.FogExp2(0x8fd3ff,0.0016);
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.1,1200);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));document.body.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0xffffff,1.3));
+const sun=new THREE.DirectionalLight(0xffffff,1.2);sun.position.set(200,300,100);scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(2000,2000),new THREE.MeshLambertMaterial({color:0x3d7a3d}));ground.rotation.x=-Math.PI/2;ground.position.y=0;scene.add(ground);
+
+const plane=new THREE.Group();
+const fuselage=new THREE.Mesh(new THREE.BoxGeometry(2,1.4,6),new THREE.MeshLambertMaterial({color:0xff5533}));plane.add(fuselage);
+const wing=new THREE.Mesh(new THREE.BoxGeometry(10,0.3,1.6),new THREE.MeshLambertMaterial({color:0xffffff}));wing.position.y=0.1;plane.add(wing);
+const tailWing=new THREE.Mesh(new THREE.BoxGeometry(4,0.25,1),new THREE.MeshLambertMaterial({color:0xffffff}));tailWing.position.set(0,0.6,-2.7);plane.add(tailWing);
+const tailFin=new THREE.Mesh(new THREE.BoxGeometry(0.25,1.4,1.2),new THREE.MeshLambertMaterial({color:0xff5533}));tailFin.position.set(0,1,-2.7);plane.add(tailFin);
+scene.add(plane);
+
+const ringCount=8;const rings=[];
+for(let i=0;i<ringCount;i++){
+  const mesh=new THREE.Mesh(new THREE.TorusGeometry(9,0.8,10,28),new THREE.MeshBasicMaterial({color:0x666666,transparent:true,opacity:0.6}));
+  const x=(Math.random()-0.5)*500+(i-ringCount/2)*40,y=40+Math.random()*70,z=-i*90-60;
+  mesh.position.set(x,y,z);mesh.rotation.y=Math.random()*0.6;
+  scene.add(mesh);rings.push({mesh,x,y,z,r:9,passed:false});
+}
+function highlightNext(){rings.forEach((rg,i)=>{rg.mesh.material.color.set(i===nextRing?0xffe45e:(rg.passed?0x3d7a3d:0x666666));});}
+
+let px=0,py=60,pz=0,yaw=0,pitch=0,speed=40,score=0,nextRing=0,timeLeft=90,over=false;
+const keys={};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='r')restart();if(e.code==='Space')e.preventDefault();});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+function updatePlane(dt){
+  const throttleUp=keys['w'],throttleDown=keys['s'],left=keys['a']||keys['arrowleft'],right=keys['d']||keys['arrowright'],climb=keys['arrowup'],dive=keys['arrowdown'];
+  if(throttleUp)speed=Math.min(speed+14*dt,120);if(throttleDown)speed=Math.max(speed-14*dt,15);
+  if(left)yaw+=1.1*dt;if(right)yaw-=1.1*dt;
+  if(climb)pitch=Math.min(pitch+0.8*dt,0.6);else if(dive)pitch=Math.max(pitch-0.8*dt,-0.6);else pitch*=Math.pow(0.4,dt);
+  px+=Math.sin(yaw)*Math.cos(pitch)*speed*dt;
+  pz+=Math.cos(yaw)*Math.cos(pitch)*speed*dt;
+  py+=Math.sin(pitch)*speed*dt;
+  py=Math.max(2,Math.min(300,py));
+  plane.position.set(px,py,pz);plane.rotation.set(pitch,yaw,-yaw*0.4+ (left?0.3:right?-0.3:0));
+  if(py<=3)endGame(false,'DÜŞTÜN');
+}
+function updateRings(){
+  if(nextRing>=ringCount)return;
+  const rg=rings[nextRing];
+  if(Math.hypot(px-rg.x,py-rg.y,pz-rg.z)<rg.r+2){rg.passed=true;score++;nextRing++;highlightNext();if(nextRing>=ringCount)endGame(true,'TÜM HALKALAR GEÇİLDİ!');}
+}
+function endGame(win,title){over=true;clearInterval(timerId);document.querySelector('#msg').style.display='block';document.querySelector('#msgTitle').textContent=title;document.querySelector('#msgText').textContent='Halka: '+score+'/'+ringCount;}
+function restart(){px=0;py=60;pz=0;yaw=0;pitch=0;speed=40;score=0;nextRing=0;timeLeft=90;over=false;rings.forEach(rg=>rg.passed=false);highlightNext();document.querySelector('#msg').style.display='none';clearInterval(timerId);startTimer();}
+document.querySelector('#msgBtn').onclick=restart;
+function startTimer(){timerId=setInterval(()=>{if(over)return;timeLeft--;if(timeLeft<=0){timeLeft=0;endGame(false,'SÜRE DOLDU');}updateHUD();},1000);}
+let timerId;startTimer();highlightNext();
+function updateHUD(){document.querySelector('#stats').innerHTML='HALKA <b>'+score+'/'+ringCount+'</b><br>YÜKSEKLİK <b>'+Math.round(py)+'</b><br>HIZ <b>'+Math.round(speed)+'</b><br>SÜRE <b>'+timeLeft+'s</b>';}
+function updateCamera(){
+  const back=new THREE.Vector3(-Math.sin(yaw)*22,10-py*0+py+8,-Math.cos(yaw)*22);
+  const tx=px-Math.sin(yaw)*22,tz=pz-Math.cos(yaw)*22,ty=py+8;
+  camera.position.lerp(new THREE.Vector3(tx,ty,tz),0.1);
+  camera.lookAt(px,py,pz);
+}
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+  if(!over){updatePlane(dt);updateRings();}
+  updateCamera();
+  renderer.render(scene,camera);
+}
+updateHUD();animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>

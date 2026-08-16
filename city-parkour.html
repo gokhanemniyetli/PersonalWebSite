@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Şehir Parkuru</title>
+<style>
+:root{--accent:#ff5fd1}
+*{margin:0;padding:0;box-sizing:border-box}body{background:#000;overflow:hidden;font-family:'Courier New',monospace}canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;color:#fff;z-index:2}
+.panel{position:absolute;top:16px;left:16px;background:rgba(0,0,0,.55);padding:10px 14px;border:1px solid var(--accent);border-radius:4px;font-size:12px;line-height:1.8}
+.panel b{color:var(--accent)}
+#msg{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center;background:rgba(0,0,0,.78);padding:24px 32px;border:1px solid var(--accent);border-radius:6px;display:none}
+#msg button{margin-top:14px;padding:10px 18px;background:var(--accent);border:0;color:#05070a;font:bold 12px 'Courier New',monospace;cursor:pointer;pointer-events:all}
+#tip{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.55);white-space:nowrap;text-align:center}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="panel" id="stats">KONTROL 0/14</div>
+  <div id="msg"><h2 id="msgTitle">BİTİŞE ULAŞTIN!</h2><p id="msgText"></p><button id="msgBtn">YENİDEN BAŞLA</button></div>
+  <div id="tip">W/A/S/D: HAREKET | BOŞLUK: ZIPLA | R: YENİDEN BAŞLA</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0e1c2e);scene.fog=new THREE.FogExp2(0x0e1c2e,0.01);
+const camera=new THREE.PerspectiveCamera(66,innerWidth/innerHeight,0.1,500);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));document.body.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0xffffff,1.2));
+const sun=new THREE.DirectionalLight(0xffffff,1.2);sun.position.set(80,150,60);scene.add(sun);
+
+const PLATFORM_COUNT=14;const platforms=[];
+let px0=0,pz0=0,py0=6;
+const startPlat=new THREE.Mesh(new THREE.BoxGeometry(10,1,10),new THREE.MeshLambertMaterial({color:0x3a4a5a}));startPlat.position.set(0,5.5,0);scene.add(startPlat);
+platforms.push({x:0,z:0,y:6,w:10,d:10});
+for(let i=1;i<=PLATFORM_COUNT;i++){
+  const prev=platforms[i-1];
+  const dx=(Math.random()-0.5)*8,dz=-(5+Math.random()*3),dy=(Math.random()-0.5)*3;
+  const x=prev.x+dx,z=prev.z+dz,y=Math.max(3,Math.min(20,prev.y+dy));
+  const w=5+Math.random()*3,d=5+Math.random()*3;
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,1,d),new THREE.MeshLambertMaterial({color:i===PLATFORM_COUNT?0xff5fd1:0x3a4a5a}));
+  mesh.position.set(x,y-0.5,z);scene.add(mesh);
+  platforms.push({x,z,y,w,d});
+}
+const finish=platforms[platforms.length-1];
+const flag=new THREE.Mesh(new THREE.BoxGeometry(0.3,4,0.3),new THREE.MeshBasicMaterial({color:0xffe45e}));flag.position.set(finish.x,finish.y+2,finish.z);scene.add(flag);
+
+const player=new THREE.Group();
+const torso=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.9,0.35),new THREE.MeshLambertMaterial({color:0xff5fd1}));torso.position.y=1;player.add(torso);
+const head=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.42,0.42),new THREE.MeshLambertMaterial({color:0xd8c090}));head.position.y=1.68;player.add(head);
+scene.add(player);
+
+let px=0,py=platforms[0].y+0.9,pz=0,vy=0,heading=0,grounded=true,checkpoint=0,elapsed=0,over=false,started=false;
+const keys={};
+addEventListener('keydown',e=>{
+  keys[e.key.toLowerCase()]=true;
+  if(e.key.toLowerCase()==='r')restart();
+  if(e.code==='Space'){e.preventDefault();if(grounded&&!over){vy=9;grounded=false;}started=true;}
+});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+function currentPlatform(x,z){return platforms.find(p=>Math.abs(x-p.x)<p.w/2&&Math.abs(z-p.z)<p.d/2);}
+function updatePlayer(dt){
+  const up=keys['w'],down=keys['s'],left=keys['a'],right=keys['d'];
+  let mx=0,mz=0;if(up)mz-=1;if(down)mz+=1;if(left)mx-=1;if(right)mx+=1;
+  if(mx||mz){started=true;heading=Math.atan2(mx,-mz);const len=Math.hypot(mx,mz);const spd=7;
+    px+=(mx/len)*spd*dt;pz+=(mz/len)*spd*dt;
+  }
+  vy-=22*dt;py+=vy*dt;
+  const plat=currentPlatform(px,pz);
+  if(plat&&py<=plat.y+0.9&&vy<=0){py=plat.y+0.9;vy=0;grounded=true;
+    const idx=platforms.indexOf(plat);if(idx>checkpoint){checkpoint=idx;updateHUD();}
+    if(plat===finish)endGame();
+  }else grounded=false;
+  if(py<-30){const safe=platforms[checkpoint];px=safe.x;pz=safe.z;py=safe.y+0.9;vy=0;}
+  player.position.set(px,py,pz);player.rotation.y=heading;
+}
+function endGame(){over=true;document.querySelector('#msg').style.display='block';document.querySelector('#msgTitle').textContent='BİTİŞE ULAŞTIN!';document.querySelector('#msgText').textContent='Süre: '+elapsed.toFixed(1)+'s';}
+function restart(){
+  px=0;pz=0;py=platforms[0].y+0.9;vy=0;heading=0;grounded=true;checkpoint=0;elapsed=0;over=false;started=false;
+  document.querySelector('#msg').style.display='none';updateHUD();
+}
+document.querySelector('#msgBtn').onclick=restart;
+function updateHUD(){document.querySelector('#stats').innerHTML='KONTROL <b>'+checkpoint+'/'+PLATFORM_COUNT+'</b><br>SÜRE <b>'+elapsed.toFixed(1)+'s</b>';}
+function updateCamera(){const tx=px-Math.sin(heading)*9,tz=pz-Math.cos(heading)*9,ty=py+5;camera.position.lerp(new THREE.Vector3(tx,ty,tz),0.15);camera.lookAt(px,py+1,pz);}
+const clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+  if(!over){updatePlayer(dt);if(started)elapsed+=dt;updateHUD();}
+  flag.rotation.y+=dt;
+  updateCamera();
+  renderer.render(scene,camera);
+}
+updateHUD();animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>

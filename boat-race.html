@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tekne Yarışı</title>
+<style>
+:root{--accent:#4ae8f0}
+*{margin:0;padding:0;box-sizing:border-box}body{background:#000;overflow:hidden;font-family:'Courier New',monospace}canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;color:#fff;z-index:2}
+.panel{position:absolute;top:16px;left:16px;background:rgba(0,0,0,.55);padding:10px 14px;border:1px solid var(--accent);border-radius:4px;font-size:12px;line-height:1.8}
+.panel b{color:var(--accent)}
+#msg{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center;background:rgba(0,0,0,.78);padding:24px 32px;border:1px solid var(--accent);border-radius:6px;display:none}
+#msg button{margin-top:14px;padding:10px 18px;background:var(--accent);border:0;color:#05070a;font:bold 12px 'Courier New',monospace;cursor:pointer;pointer-events:all}
+#tip{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.55);white-space:nowrap;text-align:center}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="panel" id="stats">KAPI 0/10</div>
+  <div id="msg"><h2 id="msgTitle">SÜRE DOLDU</h2><p id="msgText"></p><button id="msgBtn">YENİDEN BAŞLA</button></div>
+  <div id="tip">W/S veya ↑/↓: GAZ-FREN | A/D veya ←/→: DÖN | R: YENİDEN BAŞLA</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x1a6688);scene.fog=new THREE.FogExp2(0x1a6688,0.004);
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,0.1,700);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));document.body.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0xffffff,1.3));
+const sun=new THREE.DirectionalLight(0xffffff,1.2);sun.position.set(100,200,60);scene.add(sun);
+const water=new THREE.Mesh(new THREE.PlaneGeometry(700,700),new THREE.MeshLambertMaterial({color:0x1a6688,transparent:true,opacity:0.92}));water.rotation.x=-Math.PI/2;scene.add(water);
+
+const GATES=10;const gates=[];
+let gx=0,gz=20;
+for(let i=0;i<GATES;i++){
+  gz+=35+Math.random()*15;gx+=(Math.random()-0.5)*60;
+  const left=new THREE.Mesh(new THREE.CylinderGeometry(1,1,3,8),new THREE.MeshLambertMaterial({color:0xff4444}));left.position.set(gx-9,1.5,gz);scene.add(left);
+  const right=new THREE.Mesh(new THREE.CylinderGeometry(1,1,3,8),new THREE.MeshLambertMaterial({color:0x44ff44}));right.position.set(gx+9,1.5,gz);scene.add(right);
+  gates.push({x:gx,z:gz,passed:false});
+}
+const rocks=[];
+for(let i=0;i<20;i++){
+  const rx=(Math.random()-0.5)*260,rz=Math.random()*(gz+40);
+  if(gates.some(g=>Math.hypot(rx-g.x,rz-g.z)<14))continue;
+  const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(2.5),new THREE.MeshLambertMaterial({color:0x555555}));rock.position.set(rx,1,rz);scene.add(rock);
+  rocks.push({x:rx,z:rz});
+}
+
+function makeBoat(color){
+  const g=new THREE.Group();
+  const hull=new THREE.Mesh(new THREE.BoxGeometry(2.2,0.7,5.5),new THREE.MeshLambertMaterial({color}));hull.position.y=0.4;g.add(hull);
+  const cabin=new THREE.Mesh(new THREE.BoxGeometry(1.4,0.7,1.6),new THREE.MeshLambertMaterial({color:0xffffff}));cabin.position.set(0,0.9,0.8);g.add(cabin);
+  scene.add(g);return g;
+}
+const boat=makeBoat(0x4ae8f0);
+
+let px=0,pz=0,heading=0,speed=0,health=100,nextGate=0,timeLeft=75,over=false;
+const keys={};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='r')restart();if(e.code==='Space')e.preventDefault();});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+function damage(a){if(over)return;health=Math.max(0,health-a);if(health<=0)endGame(false,'TEKNE BATTI');}
+function updateBoat(dt){
+  const up=keys['w']||keys['arrowup'],down=keys['s']||keys['arrowdown'],left=keys['a']||keys['arrowleft'],right=keys['d']||keys['arrowright'];
+  if(up)speed=Math.min(speed+16*dt,30);else if(down)speed=Math.max(speed-14*dt,-8);else speed*=Math.pow(0.94,dt*60);
+  const turnAmt=1.8*dt*(0.3+0.7*Math.min(1,Math.abs(speed)/30))*(speed<0?-1:1);
+  if(left)heading+=turnAmt;if(right)heading-=turnAmt;
+  px+=Math.sin(heading)*speed*dt;pz+=Math.cos(heading)*speed*dt;
+  boat.position.set(px,0,pz);boat.rotation.y=heading;boat.rotation.z=Math.sin(Date.now()*0.002)*0.03;
+  rocks.forEach(r=>{if(Math.hypot(px-r.x,pz-r.z)<3.2){damage(25*dt*10);speed*=-0.4;}});
+  if(nextGate<GATES){const g=gates[nextGate];if(Math.abs(pz-g.z)<3&&Math.abs(px-g.x)<9){g.passed=true;nextGate++;if(nextGate>=GATES)endGame(true,'BİTİŞ ÇİZGİSİ!');}}
+}
+function endGame(win,title){over=true;clearInterval(timerId);document.querySelector('#msg').style.display='block';document.querySelector('#msgTitle').textContent=title;document.querySelector('#msgText').textContent='Kapı: '+nextGate+'/'+GATES;}
+function restart(){px=0;pz=0;heading=0;speed=0;health=100;nextGate=0;timeLeft=75;over=false;gates.forEach(g=>g.passed=false);document.querySelector('#msg').style.display='none';clearInterval(timerId);startTimer();}
+document.querySelector('#msgBtn').onclick=restart;
+function startTimer(){timerId=setInterval(()=>{if(over)return;timeLeft--;if(timeLeft<=0){timeLeft=0;endGame(false,'SÜRE DOLDU');}updateHUD();},1000);}
+let timerId;startTimer();
+function updateHUD(){document.querySelector('#stats').innerHTML='KAPI <b>'+nextGate+'/'+GATES+'</b><br>CAN <b>'+Math.round(health)+'%</b><br>SÜRE <b>'+timeLeft+'s</b><br>HIZ <b>'+Math.abs(Math.round(speed*2))+'</b>';}
+function updateCamera(){const tx=px-Math.sin(heading)*12,tz=pz-Math.cos(heading)*12;camera.position.lerp(new THREE.Vector3(tx,6,tz),0.12);camera.lookAt(px,1,pz);}
+const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),0.05);if(!over)updateBoat(dt);updateCamera();renderer.render(scene,camera);}
+updateHUD();animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>

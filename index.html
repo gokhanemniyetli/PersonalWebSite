@@ -91,7 +91,7 @@
   </style>
   <style>
     :root{--ultra-cyan:#00fff0;--ultra-pink:#ff168f;--ultra-yellow:#fff000}
-    body{position:relative;min-height:100vh}#global-three-scene{position:fixed;z-index:0;inset:0;width:100%;height:100%;pointer-events:none;opacity:.55;will-change:transform}.nav,main,footer{position:relative;z-index:1}.mouse-neon-particle{position:fixed;z-index:12;width:10px;height:10px;border-radius:50%;pointer-events:none;filter:blur(.1px);mix-blend-mode:screen;animation:mouse-neon-fade .75s ease-out forwards}.mouse-neon-core{position:fixed;z-index:11;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;pointer-events:none;border:1px solid #00fff0;background:#00fff0;box-shadow:0 0 7px #00fff0,0 0 14px #ff168f;mix-blend-mode:screen;animation:mouse-neon-pulse .9s ease-in-out infinite alternate}@keyframes mouse-neon-fade{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.15)}}@keyframes mouse-neon-pulse{to{transform:scale(1.18);filter:brightness(1.2)}}
+    body{position:relative;min-height:100vh}#global-three-scene{position:fixed;z-index:0;inset:0;width:100%;height:100%;pointer-events:none;opacity:.55;will-change:transform}.nav,main,footer{position:relative;z-index:1}
     body:before{opacity:.48;background-size:18px 18px;background-image:linear-gradient(#00fff02a 1px,transparent 1px),linear-gradient(90deg,#ff168f22 1px,transparent 1px)}body:after{opacity:.95;background:repeating-linear-gradient(0deg,transparent 0 3px,#00fff014 4px,#ff168f10 5px)}
     .nav{border-bottom-color:var(--ultra-cyan);box-shadow:0 0 10px var(--ultra-cyan),0 0 35px #00fff066,0 1px 0 var(--ultra-pink)}.logo{color:#fff;text-shadow:2px 0 var(--ultra-pink),-2px 0 var(--ultra-cyan),0 0 24px #fff}.logo span{color:var(--ultra-yellow)}nav a{color:#d2ffff;text-shadow:0 0 7px var(--ultra-cyan)}nav a:hover{color:#fff;text-shadow:0 0 7px #fff,0 0 20px var(--ultra-pink)}.nav-button,.button{border-color:var(--ultra-cyan);color:#fff;box-shadow:0 0 10px var(--ultra-cyan),0 0 24px var(--ultra-pink),inset 0 0 14px #00fff044}
     .hero:before{color:var(--ultra-yellow);text-shadow:0 0 10px var(--ultra-yellow),0 0 20px var(--ultra-pink)}.kicker,.section-number,.project-tag{color:var(--ultra-cyan);text-shadow:0 0 8px var(--ultra-cyan),0 0 20px var(--ultra-pink)}.hero h1,h2{ text-shadow:2px 0 #ff168f66,-2px 0 #00fff066,0 0 26px #fff3}.hero h1 i,h2 i{color:var(--ultra-pink);text-shadow:0 0 12px var(--ultra-pink),0 0 32px var(--ultra-pink)}
@@ -131,7 +131,7 @@
   <canvas id="global-three-scene" aria-hidden="true"></canvas>
   <header class="nav wrap">
     <a class="logo" href="#top">RA<span>.</span></a>
-    <nav><a href="#about" data-i18n="aboutNav">Hakkımda</a><a href="#projects" data-i18n="projectsNav">Projeler</a><a href="#contact" data-i18n="contactNav">İletişim</a><a href="#attractions" id="extra-toggle" target="_blank" rel="noopener">Ekstra</a><a href="#tools" id="tools-toggle" target="_blank" rel="noopener">TOOLS</a></nav>
+    <nav><a href="#about" data-i18n="aboutNav">Hakkımda</a><a href="#projects" data-i18n="projectsNav">Projeler</a><a href="games.html">İlk Oyunlarım</a><a href="#contact" data-i18n="contactNav">İletişim</a><a href="#attractions" id="extra-toggle" target="_blank" rel="noopener">Ekstra</a><a href="#tools" id="tools-toggle" target="_blank" rel="noopener">TOOLS</a></nav>
     <div class="nav-actions"><label class="language-picker"><span>◎</span><select id="language" aria-label="Dil seçimi" data-i18n-aria="languageSelectAria"><option value="tr">TR</option><option value="en">EN</option></select></label><a class="nav-button" href="#contact" data-i18n="collab">Birlikte yapalım <span>↗</span></a></div>
   </header>
 
@@ -345,43 +345,6 @@
       function render(time){world.rotation.y=time*.00022+pointerX*.45;world.rotation.x=pointerY*.25;core.rotation.x=time*.00018;wire.rotation.y=-time*.0003;renderer.render(scene,camera);requestAnimationFrame(render)}requestAnimationFrame(render);
       document.querySelectorAll('.hero-art .orbit,.hero-art .sun,.hero-art .note').forEach(element=>element.style.display='none');
     }
-  </script>
-  <script>
-    const mouseCore=document.createElement('i');
-    mouseCore.className='mouse-neon-core';
-    mouseCore.style.opacity='0';
-    document.body.appendChild(mouseCore);
-    let lastMouseX=innerWidth/2;
-    let lastMouseY=innerHeight/2;
-    const placeMouseCore=()=>{mouseCore.style.left=lastMouseX+'px';mouseCore.style.top=lastMouseY+'px'};
-    placeMouseCore();
-    document.addEventListener('pointermove',event=>{
-      if(event.pointerType==='touch')return;
-      lastMouseX=event.clientX;
-      lastMouseY=event.clientY;
-      mouseCore.style.opacity='1';
-      placeMouseCore();
-      for(let index=0;index<5;index++){
-        const particle=document.createElement('i');
-        particle.className='mouse-neon-particle';
-        const size=10+Math.random()*14;
-        particle.style.width=size+'px';
-        particle.style.height=size+'px';
-        particle.style.left=(event.clientX-size/2)+'px';
-        particle.style.top=(event.clientY-size/2)+'px';
-        particle.style.background=['#00fff0','#ff168f','#fff000','#ffffff'][Math.floor(Math.random()*4)];
-        particle.style.boxShadow='0 0 10px currentColor,0 0 24px currentColor,0 0 42px currentColor';
-        particle.style.setProperty('--dx',(Math.random()*52-26)+'px');
-        particle.style.setProperty('--dy',(Math.random()*56-28)+'px');
-        document.body.appendChild(particle);
-        setTimeout(()=>particle.remove(),950);
-      }
-    },{passive:true});
-    window.addEventListener('scroll',()=>requestAnimationFrame(placeMouseCore),{passive:true});
-    window.addEventListener('resize',()=>{lastMouseX=Math.min(lastMouseX,innerWidth);lastMouseY=Math.min(lastMouseY,innerHeight);placeMouseCore()},{passive:true});
-    document.addEventListener('mouseleave',()=>{mouseCore.style.opacity='0'});
-    document.addEventListener('mouseenter',()=>{mouseCore.style.opacity='1'});
-    setInterval(()=>{const particles=document.querySelectorAll('.mouse-neon-particle');if(particles.length>80)[...particles].slice(0,particles.length-80).forEach(particle=>particle.remove())},250);
   </script>
 </body>
 </html>

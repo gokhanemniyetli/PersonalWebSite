@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Zombi Kaçışı 3D</title>
+<style>
+:root{--accent:#7cff4a}
+*{margin:0;padding:0;box-sizing:border-box}body{background:#000;overflow:hidden;font-family:'Courier New',monospace}canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;color:#fff;z-index:2}
+.panel{position:absolute;top:16px;left:16px;background:rgba(0,0,0,.55);padding:10px 14px;border:1px solid var(--accent);border-radius:4px;font-size:12px;line-height:1.8}
+.panel b{color:var(--accent)}
+#msg{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center;background:rgba(0,0,0,.78);padding:24px 32px;border:1px solid var(--accent);border-radius:6px;display:none}
+#msg button{margin-top:14px;padding:10px 18px;background:var(--accent);border:0;color:#05070a;font:bold 12px 'Courier New',monospace;cursor:pointer;pointer-events:all}
+#tip{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.55);white-space:nowrap;text-align:center}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="panel" id="stats">HAYATTA: 0s</div>
+  <div id="msg"><h2 id="msgTitle">YAKALANDIN</h2><p id="msgText"></p><button id="msgBtn">YENİDEN BAŞLA</button></div>
+  <div id="tip">W/A/S/D veya OK TUŞLARI: KOŞ | R: YENİDEN BAŞLA</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0c1410);scene.fog=new THREE.FogExp2(0x0c1410,0.012);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,0.1,500);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));document.body.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0x6a7a6a,1.0));
+const moon=new THREE.DirectionalLight(0x8fb0ff,0.9);moon.position.set(60,140,40);scene.add(moon);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(400,400),new THREE.MeshLambertMaterial({color:0x1c2418}));ground.rotation.x=-Math.PI/2;scene.add(ground);
+
+const obstacles=[];
+for(let i=0;i<24;i++){
+  const w=4+Math.random()*8,d=4+Math.random()*8,h=3+Math.random()*6;
+  let x,z;do{x=(Math.random()-0.5)*300;z=(Math.random()-0.5)*300;}while(Math.hypot(x,z)<18);
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshLambertMaterial({color:0x33402e}));mesh.position.set(x,h/2,z);scene.add(mesh);
+  obstacles.push({x,z,w,d});
+}
+function blocked(x,z,margin){return obstacles.some(o=>Math.abs(x-o.x)<o.w/2+margin&&Math.abs(z-o.z)<o.d/2+margin);}
+
+function makePerson(color){
+  const g=new THREE.Group();
+  const torso=new THREE.Mesh(new THREE.BoxGeometry(0.6,0.9,0.35),new THREE.MeshLambertMaterial({color}));torso.position.y=1;g.add(torso);
+  const head=new THREE.Mesh(new THREE.BoxGeometry(0.42,0.42,0.42),new THREE.MeshLambertMaterial({color:0xd8c090}));head.position.y=1.68;g.add(head);
+  const legL=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.8,0.22),new THREE.MeshLambertMaterial({color:0x222222}));legL.position.set(0.16,0.4,0);g.add(legL);
+  const legR=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.8,0.22),new THREE.MeshLambertMaterial({color:0x222222}));legR.position.set(-0.16,0.4,0);g.add(legR);
+  scene.add(g);return g;
+}
+const player=makePerson(0x4488ff);
+
+const zombies=[];
+function spawnZombie(){
+  let x,z;do{x=(Math.random()-0.5)*300;z=(Math.random()-0.5)*300;}while(Math.hypot(x-px,z-pz)<40||blocked(x,z,2));
+  const g=makePerson(0x7cff4a);g.position.set(x,0,z);
+  zombies.push({group:g,x,z,speed:3+Math.random()*2});
+}
+
+let px=0,pz=0,heading=0,health=100,survived=0,over=false;
+const keys={};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='r')restart();if(e.code==='Space')e.preventDefault();});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+function damage(a){if(over)return;health=Math.max(0,health-a);if(health<=0)endGame('YAKALANDIN');}
+function updatePlayer(dt){
+  const up=keys['w']||keys['arrowup'],down=keys['s']||keys['arrowdown'],left=keys['a']||keys['arrowleft'],right=keys['d']||keys['arrowright'];
+  let mx=0,mz=0;
+  if(up)mz-=1;if(down)mz+=1;if(left)mx-=1;if(right)mx+=1;
+  if(mx||mz){heading=Math.atan2(mx,-mz);const len=Math.hypot(mx,mz);const spd=7;
+    const nx=px+(mx/len)*spd*dt,nz=pz+(mz/len)*spd*dt;
+    if(!blocked(nx,nz,0.6)){px=nx;pz=nz;}
+  }
+  px=Math.max(-195,Math.min(195,px));pz=Math.max(-195,Math.min(195,pz));
+  player.position.set(px,0,pz);player.rotation.y=heading;
+}
+function updateZombies(dt){
+  zombies.forEach(z=>{
+    const ang=Math.atan2(px-z.x,pz-z.z);
+    const nx=z.x+Math.sin(ang)*z.speed*dt,nz=z.z+Math.cos(ang)*z.speed*dt;
+    if(!blocked(nx,nz,0.6)){z.x=nx;z.z=nz;}
+    z.group.position.set(z.x,0,z.z);z.group.rotation.y=ang;
+    if(Math.hypot(z.x-px,z.z-pz)<1.6)damage(30*dt);
+  });
+}
+function endGame(title){over=true;clearInterval(timerId);clearInterval(spawnId);document.querySelector('#msg').style.display='block';document.querySelector('#msgTitle').textContent=title;document.querySelector('#msgText').textContent='Hayatta kalma süresi: '+survived+'s';}
+function restart(){
+  px=0;pz=0;heading=0;health=100;survived=0;over=false;
+  zombies.forEach(z=>scene.remove(z.group));zombies.length=0;
+  for(let i=0;i<4;i++)spawnZombie();
+  document.querySelector('#msg').style.display='none';clearInterval(timerId);clearInterval(spawnId);startTimers();
+}
+document.querySelector('#msgBtn').onclick=restart;
+function startTimers(){
+  timerId=setInterval(()=>{if(over)return;survived++;updateHUD();},1000);
+  spawnId=setInterval(()=>{if(over)return;if(zombies.length<14)spawnZombie();},4000);
+}
+let timerId,spawnId;for(let i=0;i<4;i++)spawnZombie();startTimers();
+function updateHUD(){document.querySelector('#stats').innerHTML='HAYATTA <b>'+survived+'s</b><br>CAN <b>'+Math.round(health)+'%</b><br>ZOMBİ <b>'+zombies.length+'</b>';}
+function updateCamera(){const tx=px-Math.sin(heading)*8,tz=pz-Math.cos(heading)*8;camera.position.lerp(new THREE.Vector3(tx,5,tz),0.14);camera.lookAt(px,1.2,pz);}
+const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),0.05);if(!over){updatePlayer(dt);updateZombies(dt);}updateCamera();renderer.render(scene,camera);}
+updateHUD();animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>

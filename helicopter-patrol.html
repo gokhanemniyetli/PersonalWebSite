@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Helikopter Devriyesi</title>
+<style>
+:root{--accent:#4a8bff}
+*{margin:0;padding:0;box-sizing:border-box}body{background:#000;overflow:hidden;font-family:'Courier New',monospace}canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;color:#fff;z-index:2}
+.panel{position:absolute;top:16px;left:16px;background:rgba(0,0,0,.55);padding:10px 14px;border:1px solid var(--accent);border-radius:4px;font-size:12px;line-height:1.8}
+.panel b{color:var(--accent)}
+#msg{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);text-align:center;background:rgba(0,0,0,.78);padding:24px 32px;border:1px solid var(--accent);border-radius:6px;display:none}
+#msg button{margin-top:14px;padding:10px 18px;background:var(--accent);border:0;color:#05070a;font:bold 12px 'Courier New',monospace;cursor:pointer;pointer-events:all}
+#tip{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.55);white-space:nowrap;text-align:center}
+</style>
+</head>
+<body>
+<div id="hud">
+  <div class="panel" id="stats">PİST 0/6</div>
+  <div id="msg"><h2 id="msgTitle">SÜRE DOLDU</h2><p id="msgText"></p><button id="msgBtn">YENİDEN BAŞLA</button></div>
+  <div id="tip">W/S: İLERİ-GERİ | A/D: DÖN | ↑/↓ veya Boşluk/Shift: YÜKSEL-ALÇAL | R: YENİDEN BAŞLA</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x5fa8e0);scene.fog=new THREE.FogExp2(0x5fa8e0,0.0025);
+const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,0.1,900);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));document.body.appendChild(renderer.domElement);
+scene.add(new THREE.AmbientLight(0xffffff,1.3));
+const sun=new THREE.DirectionalLight(0xffffff,1.2);sun.position.set(150,220,80);scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(700,700),new THREE.MeshLambertMaterial({color:0x2c3b2c}));ground.rotation.x=-Math.PI/2;scene.add(ground);
+
+const buildings=[];
+const bMat=[0xc8b090,0xaab0c0,0xd0c8b0,0x90a8b8].map(c=>new THREE.MeshLambertMaterial({color:c}));
+for(let i=0;i<30;i++){
+  const w=8+Math.random()*12,d=8+Math.random()*12,h=10+Math.random()*45;
+  let x,z;do{x=(Math.random()-0.5)*400;z=(Math.random()-0.5)*400;}while(Math.hypot(x,z)<30);
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),bMat[i%4]);mesh.position.set(x,h/2,z);scene.add(mesh);
+  buildings.push({x,z,w,d,h});
+}
+function collidesBuilding(x,y,z){return buildings.some(b=>Math.abs(x-b.x)<b.w/2+2&&Math.abs(z-b.z)<b.d/2+2&&y<b.h+2);}
+
+const PAD_COUNT=6;const pads=[];
+for(let i=0;i<PAD_COUNT;i++){
+  let x,z;do{x=(Math.random()-0.5)*380;z=(Math.random()-0.5)*380;}while(buildings.some(b=>Math.abs(x-b.x)<b.w/2+8&&Math.abs(z-b.z)<b.d/2+8)||Math.hypot(x,z)<25);
+  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(6,6,0.3,20),new THREE.MeshBasicMaterial({color:0x666666}));
+  mesh.position.set(x,0.2,z);scene.add(mesh);
+  pads.push({mesh,x,z});
+}
+function highlightNextPad(){pads.forEach((p,i)=>p.mesh.material.color.set(i===nextPad?0xffe45e:(i<nextPad?0x33cc55:0x666666)));}
+
+const heli=new THREE.Group();
+const cabin=new THREE.Mesh(new THREE.BoxGeometry(2,1.6,3.2),new THREE.MeshLambertMaterial({color:0x4a8bff}));heli.add(cabin);
+const tail=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,3.4),new THREE.MeshLambertMaterial({color:0x3a6ecf}));tail.position.set(0,0.2,-2.8);heli.add(tail);
+const rotor=new THREE.Mesh(new THREE.BoxGeometry(9,0.12,0.4),new THREE.MeshLambertMaterial({color:0x222222}));rotor.position.y=1.1;heli.add(rotor);
+scene.add(heli);
+
+let px=0,py=30,pz=0,heading=0,speed=0,vy=0,health=100,nextPad=0,timeLeft=90,over=false;
+const keys={};
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='r')restart();if(e.code==='Space')e.preventDefault();});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+
+function damage(a){if(over)return;health=Math.max(0,health-a);if(health<=0)endGame(false,'HELİKOPTER DÜŞTÜ');}
+function updateHeli(dt){
+  const up=keys['w'],down=keys['s'],left=keys['a'],right=keys['d'],climb=keys['arrowup']||keys[' ']||keys['shift'],dive=keys['arrowdown'];
+  if(up)speed=Math.min(speed+14*dt,26);else if(down)speed=Math.max(speed-14*dt,-10);else speed*=Math.pow(0.92,dt*60);
+  if(left)heading+=1.4*dt;if(right)heading-=1.4*dt;
+  if(climb)vy=Math.min(vy+10*dt,14);else if(dive)vy=Math.max(vy-10*dt,-14);else vy*=Math.pow(0.85,dt*60);
+  const nx=px+Math.sin(heading)*speed*dt,nz=pz+Math.cos(heading)*speed*dt,ny=Math.max(1.5,Math.min(140,py+vy*dt));
+  if(collidesBuilding(nx,ny,nz)){damage(Math.abs(speed)*1.2+5);speed*=-0.3;}
+  else{px=nx;pz=nz;py=ny;}
+  heli.position.set(px,py,pz);heli.rotation.y=heading;heli.rotation.z=(left?0.12:right?-0.12:0);
+  rotor.rotation.y+=40*dt;
+  if(nextPad<PAD_COUNT){const p=pads[nextPad];if(Math.hypot(px-p.x,pz-p.z)<7&&py<5){nextPad++;highlightNextPad();if(nextPad>=PAD_COUNT)endGame(true,'TÜM PİSTLERE İNİŞ TAMAM!');}}
+}
+function endGame(win,title){over=true;clearInterval(timerId);document.querySelector('#msg').style.display='block';document.querySelector('#msgTitle').textContent=title;document.querySelector('#msgText').textContent='Pist: '+nextPad+'/'+PAD_COUNT;}
+function restart(){px=0;py=30;pz=0;heading=0;speed=0;vy=0;health=100;nextPad=0;timeLeft=90;over=false;highlightNextPad();document.querySelector('#msg').style.display='none';clearInterval(timerId);startTimer();}
+document.querySelector('#msgBtn').onclick=restart;
+function startTimer(){timerId=setInterval(()=>{if(over)return;timeLeft--;if(timeLeft<=0){timeLeft=0;endGame(false,'SÜRE DOLDU');}updateHUD();},1000);}
+let timerId;startTimer();highlightNextPad();
+function updateHUD(){document.querySelector('#stats').innerHTML='PİST <b>'+nextPad+'/'+PAD_COUNT+'</b><br>YÜKSEKLİK <b>'+Math.round(py)+'</b><br>CAN <b>'+Math.round(health)+'%</b><br>SÜRE <b>'+timeLeft+'s</b>';}
+function updateCamera(){const tx=px-Math.sin(heading)*14,tz=pz-Math.cos(heading)*14,ty=py+7;camera.position.lerp(new THREE.Vector3(tx,ty,tz),0.12);camera.lookAt(px,py,pz);}
+const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),0.05);if(!over)updateHeli(dt);updateCamera();renderer.render(scene,camera);}
+updateHUD();animate();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>
