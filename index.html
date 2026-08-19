@@ -131,8 +131,8 @@
   <canvas id="global-three-scene" aria-hidden="true"></canvas>
   <header class="nav wrap">
     <a class="logo" href="#top">RA<span>.</span></a>
-    <nav><a href="#about" data-i18n="aboutNav">Hakkımda</a><a href="#projects" data-i18n="projectsNav">Projeler</a><a href="games.html">İlk Oyunlarım</a><a href="#contact" data-i18n="contactNav">İletişim</a><a href="#attractions" id="extra-toggle" target="_blank" rel="noopener">Ekstra</a><a href="#tools" id="tools-toggle" target="_blank" rel="noopener">TOOLS</a></nav>
-    <div class="nav-actions"><label class="language-picker"><span>◎</span><select id="language" aria-label="Dil seçimi" data-i18n-aria="languageSelectAria"><option value="tr">TR</option><option value="en">EN</option></select></label><a class="nav-button" href="#contact" data-i18n="collab">Birlikte yapalım <span>↗</span></a></div>
+    <nav><a href="#about" data-i18n="aboutNav">Hakkımda</a><a href="#projects" data-i18n="projectsNav">Projeler</a><a href="games.html" data-i18n="firstGamesNav">İlk Oyunlarım</a><a href="#contact" data-i18n="contactNav">İletişim</a><a href="quotes.html" data-i18n="quotesNav">Sözlerim</a><a href="#attractions" id="extra-toggle" target="_blank" rel="noopener">Ekstra</a><a href="#tools" id="tools-toggle" target="_blank" rel="noopener">TOOLS</a></nav>
+    <div class="nav-actions"><label class="language-picker"><span>◎</span><select id="language" aria-label="Dil seçimi" data-i18n-aria="languageSelectAria"><option value="tr">TR</option><option value="en">EN</option></select></label><span class="mode-hitbox" id="site-mode-hitbox"><button class="nav-button site-mode-toggle" id="site-mode-toggle" type="button">Light mode</button></span><a class="nav-button" href="#contact" data-i18n="collab">Birlikte yapalım <span>↗</span></a></div>
   </header>
 
   <main id="top">
@@ -269,7 +269,7 @@
       </div>
     </section>
 
-    <section class="skills wrap"><p class="section-number" data-i18n="skillsLabel">04 / YAZABİLDİĞİM KOD DİLLERİ</p><h2 class="skills-title" data-i18n="skillsTitle">Yazabildiğim<br><i>kod dilleri.</i></h2><div class="skill-list"><span>Python</span><span>HTML</span><span>CSS</span><span>JavaScript</span><span>JSON</span><span>C++</span><span>Java</span></div><p class="skills-extra" data-i18n="skillsExtra">Ayrıca robotik sistemler, sensörler ve gömülü cihazlarla çalışabiliyorum.</p></section>
+    <section id="skills" class="skills wrap"><p class="section-number" data-i18n="skillsLabel">04 / YAZABİLDİĞİM KOD DİLLERİ</p><h2 class="skills-title" data-i18n="skillsTitle">Yazabildiğim<br><i>kod dilleri.</i></h2><div class="skill-list"><span>Python</span><span>HTML</span><span>CSS</span><span>JavaScript</span><span>JSON</span><span>C++</span><span>Java</span></div><p class="skills-extra" data-i18n="skillsExtra">Ayrıca robotik sistemler, sensörler ve gömülü cihazlarla çalışabiliyorum.</p></section>
 
     <section id="contact" class="contact wrap"><p class="section-number" data-i18n="contactLabel">05 / İLETİŞİM</p><h2 data-i18n="contactTitle">Bir fikrin mi var?<br><i>Konuşalım.</i></h2><a class="contact-link" href="mailto:rizaaliemniyetli@gmail.com?subject=Yeni%20bir%20proje">rizaaliemniyetli@gmail.com <span>↗</span></a></section>
   </main>
@@ -344,6 +344,47 @@
       function resize(){const bounds=stage.getBoundingClientRect();renderer.setSize(bounds.width,bounds.height,false);camera.aspect=bounds.width/bounds.height;camera.updateProjectionMatrix()}window.addEventListener('resize',resize);resize();
       function render(time){world.rotation.y=time*.00022+pointerX*.45;world.rotation.x=pointerY*.25;core.rotation.x=time*.00018;wire.rotation.y=-time*.0003;renderer.render(scene,camera);requestAnimationFrame(render)}requestAnimationFrame(render);
       document.querySelectorAll('.hero-art .orbit,.hero-art .sun,.hero-art .note').forEach(element=>element.style.display='none');
+    }
+  </script>
+  <script>
+    const quotesNavLabels = { tr: 'Sözlerim', en: 'My Quotes' };
+    const firstGamesNavLabels = { tr: 'İlk Oyunlarım', en: 'My First Games' };
+    const quotesNav = document.querySelector('[data-i18n="quotesNav"]');
+    const firstGamesNav = document.querySelector('[data-i18n="firstGamesNav"]');
+    const languagePicker = document.querySelector('#language');
+    function updateQuotesNav() {
+      if (quotesNav && languagePicker) quotesNav.textContent = quotesNavLabels[languagePicker.value] || quotesNavLabels.tr;
+      if (firstGamesNav && languagePicker) firstGamesNav.textContent = firstGamesNavLabels[languagePicker.value] || firstGamesNavLabels.tr;
+    }
+    languagePicker?.addEventListener('change', updateQuotesNav);
+    updateQuotesNav();
+  </script>
+  <style>
+    .mode-hitbox { display:grid; place-items:center; width:112px; height:42px; margin:0; border-radius:0; }
+    .site-mode-toggle { cursor:pointer; width:112px; height:42px; min-width:112px; min-height:42px; justify-self:center; align-self:center; justify-content:center; padding-left:6px; padding-right:6px; border-radius:0; white-space:nowrap; font:700 12px "Segoe UI",Tahoma,sans-serif; transition:none !important; animation:none !important; }
+    .site-mode-toggle:hover { color:var(--cyan) !important; background:transparent !important; box-shadow:none !important; transform:none !important; }
+    @media(max-width:780px){ .mode-hitbox { width:96px; height:38px; margin:0; } .site-mode-toggle { display:inline-flex; width:96px; height:38px; min-width:96px; min-height:38px; padding:9px 10px; font-size:10px; } }
+    body.site-light-mode { --bg:#f4f7f5; --panel:#ffffff; --ink:#17252a; --muted:#607178; --line:#cbdad7; --cyan:#087f80; --amber:#c65f35; --coral:#c65f35; background:radial-gradient(circle at 82% 5%,#b8e1df 0,transparent 30%),radial-gradient(circle at 10% 75%,#f0c5c0 0,transparent 25%),linear-gradient(135deg,#f4f7f5,#e6f0ed); }
+    body.site-light-mode:before { opacity:.24; background-image:linear-gradient(#087f8018 1px,transparent 1px),linear-gradient(90deg,#087f8018 1px,transparent 1px); }
+    body.site-light-mode:after { background:linear-gradient(115deg,transparent 0 48%,#c65f3514 49%,transparent 50%); }
+    body.site-light-mode .profile-link,.site-light-mode .photo-card,.site-light-mode .channel-link,.site-light-mode .editor-panel,.site-light-mode .output-panel,.site-light-mode .mission-panel,.site-light-mode .tool-card,.site-light-mode .attraction,.site-light-mode .mega-card { background:rgba(255,255,255,.82); box-shadow:0 8px 22px #17252a18; }
+    body.site-light-mode .hero-art { background:radial-gradient(circle at 50% 45%,#d8eeeb,#eef5f3 48%,#f4f7f5); box-shadow:0 10px 30px #17252a18; }
+  </style>
+  <script>
+    const siteModeToggle = document.querySelector('#site-mode-toggle');
+    if (siteModeToggle) {
+      if (localStorage.getItem('site-mode') === 'light') document.body.classList.add('site-light-mode');
+      function updateSiteModeLabel() { siteModeToggle.textContent = document.body.classList.contains('site-light-mode') ? 'Dark mode' : 'Light mode'; }
+      siteModeToggle.addEventListener('click', (event) => {
+        event.preventDefault();
+        document.body.classList.toggle('site-light-mode');
+        localStorage.setItem('site-mode', document.body.classList.contains('site-light-mode') ? 'light' : 'dark');
+        updateSiteModeLabel();
+      });
+      document.querySelector('#site-mode-hitbox').addEventListener('click', (event) => {
+        if (event.target !== siteModeToggle) siteModeToggle.click();
+      });
+      updateSiteModeLabel();
     }
   </script>
 </body>

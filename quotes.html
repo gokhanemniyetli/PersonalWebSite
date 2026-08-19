@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Quotes | Rıza Ali Emniyetli</title>
+  <style>
+    :root { --bg:#05070c; --panel:#0b111a; --ink:#f5fbff; --muted:#8ea4b4; --line:#26374b; --cyan:#00f5d4; --coral:#ff3d81; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:radial-gradient(circle at 80% 5%,#082c3c 0,transparent 30%),radial-gradient(circle at 10% 75%,#35112a 0,transparent 25%),var(--bg); font-family:"Courier New",Consolas,monospace; }
+    .wrap { width:min(980px,calc(100% - 48px)); margin:auto; }
+    header { display:flex; align-items:center; justify-content:space-between; min-height:90px; border-bottom:1px solid var(--line); }
+    .logo, a { color:var(--cyan); text-decoration:none; }
+    .logo { font-size:25px; font-weight:700; letter-spacing:-.08em; }
+    .header-actions { display:flex; align-items:center; gap:10px; }
+    .mode-hitbox { display:grid; place-items:center; width:112px; height:42px; margin:0; border-radius:0; }
+    .back, .mode-toggle, #language { padding:10px 14px; min-height:42px; border:1px solid var(--cyan); color:var(--cyan); background:transparent; font:inherit; cursor:pointer; }
+    .mode-toggle { width:112px; height:42px; min-width:112px; justify-self:center; align-self:center; padding-left:6px; padding-right:6px; border-radius:0; white-space:nowrap; font:12px "Courier New",Consolas,monospace; transition:none !important; animation:none !important; }
+    .mode-toggle:hover { color:var(--cyan) !important; background:transparent !important; box-shadow:none !important; transform:none !important; }
+    #language option { color:#17252a; }
+    main { padding:110px 0; }
+    .label { color:var(--cyan); font-size:12px; letter-spacing:.14em; }
+    h1 { margin:24px 0 55px; max-width:700px; font-size:clamp(42px,8vw,82px); line-height:.95; letter-spacing:-.08em; }
+    .quotes { display:grid; gap:16px; }
+    blockquote { margin:0; padding:28px 32px; border:1px solid var(--line); background:linear-gradient(145deg,#0e1924,#080e16); color:var(--ink); font-family:Georgia,serif; font-size:clamp(20px,3vw,30px); line-height:1.45; box-shadow:0 10px 30px #0008; }
+    .quote-link { display:block; width:max-content; min-height:48px; margin-top:8px; padding:15px 22px; border:1px solid var(--cyan); color:var(--cyan); font-size:12px; line-height:1.2; box-sizing:border-box; transition:none !important; animation:none !important; }
+    .quote-link:hover { color:var(--bg); background:var(--cyan); }
+    blockquote::before { content:'“'; display:block; color:var(--coral); font-size:46px; line-height:.6; }
+    body.light-mode { --bg:#f4f7f5; --panel:#ffffff; --ink:#17252a; --muted:#607178; --line:#cbdad7; --cyan:#087f80; --coral:#c65f35; background:radial-gradient(circle at 80% 5%,#b8e1df 0,transparent 30%),radial-gradient(circle at 10% 75%,#f0c5c0 0,transparent 25%),linear-gradient(135deg,#f4f7f5,#e6f0ed); }
+    body.light-mode blockquote { background:var(--panel); box-shadow:0 8px 22px #17252a18; }
+    @media(max-width:600px) { .wrap{width:calc(100% - 32px)} header{min-height:76px} main{padding:75px 0} blockquote{padding:24px} }
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <a class="logo" href="index.html">RA<span>.</span></a>
+    <div class="header-actions">
+      <select id="language" aria-label="Language selection"><option value="tr">TR</option><option value="en">EN</option></select>
+      <span class="mode-hitbox" id="quotes-mode-hitbox"><button class="mode-toggle" id="mode-toggle" type="button">Light mode</button></span>
+      <a class="back" href="index.html" data-i18n="back">← Back</a>
+    </div>
+  </header>
+  <main class="wrap">
+    <div class="label" data-i18n="label">01 / MY QUOTES</div>
+    <h1 data-i18n="title">Words I want to keep.</h1>
+    <section class="quotes" aria-label="Quotes">
+      <blockquote data-i18n="quoteOne">I promise to follow your instructions carefully and not do anything you don’t want.</blockquote>
+      <blockquote data-i18n="quoteTwo">If there’s a detail you’d like added, I’ll make sure to include it.</blockquote>
+      <blockquote data-i18n="quoteThree">I can work in the languages listed below and handle tasks as long as they have the right requirements.</blockquote>
+      <a class="quote-link" href="index.html#skills" data-i18n="skillsButton">View my coding languages →</a>
+      <blockquote data-i18n="quoteFour">My goal is to help you as best as I can. I don’t charge anything, but donations are always appreciated.</blockquote>
+    </section>
+  </main>
+  <script>
+    const pageTranslations = {
+      en: { label:'01 / MY QUOTES', title:'Words I want to keep.', back:'← Back', quoteOne:'I promise to follow your instructions carefully and not do anything you don’t want.', quoteTwo:'If there’s a detail you’d like added, I’ll make sure to include it.', quoteThree:'I can work in the languages listed below and handle tasks as long as they have the right requirements.', skillsButton:'View my coding languages →', quoteFour:'My goal is to help you as best as I can. I don’t charge anything, but donations are always appreciated.' },
+      tr: { label:'01 / SÖZLERİM', title:'Saklamak istediğim sözler.', back:'← Geri', quoteOne:'Talimatlarını dikkatle takip edeceğime ve istemediğin hiçbir şeyi yapmayacağıma söz veriyorum.', quoteTwo:'Eklenmesini istediğin bir ayrıntı varsa, onu mutlaka dahil edeceğim.', quoteThree:'Aşağıda listelenen dillerle çalışabilir ve doğru gereksinimleri olduğu sürece görevleri yerine getirebilirim.', skillsButton:'Kod dillerimi gör →', quoteFour:'Amacım sana elimden geldiğince yardımcı olmak. Ücret talep etmiyorum; ancak bağışlar her zaman memnuniyetle karşılanır.' }
+    };
+    const language = document.querySelector('#language');
+    const modeToggle = document.querySelector('#mode-toggle');
+    function setPageLanguage(value) {
+      document.documentElement.lang = value;
+      document.querySelectorAll('[data-i18n]').forEach(element => { element.textContent = pageTranslations[value][element.dataset.i18n]; });
+      localStorage.setItem('portfolio-language', value);
+    }
+    language.value = localStorage.getItem('portfolio-language') || 'tr';
+    language.addEventListener('change', event => setPageLanguage(event.target.value));
+    setPageLanguage(language.value);
+    const savedMode = localStorage.getItem('quotes-mode');
+    if (savedMode === 'light') document.body.classList.add('light-mode');
+    function updateModeLabel() { modeToggle.textContent = document.body.classList.contains('light-mode') ? 'Dark mode' : 'Light mode'; }
+    modeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('light-mode');
+      localStorage.setItem('quotes-mode', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+      updateModeLabel();
+    });
+    document.querySelector('#quotes-mode-hitbox').addEventListener('click', event => {
+      if (event.target !== modeToggle) modeToggle.click();
+    });
+    updateModeLabel();
+  </script>
+</body>
+</html>
