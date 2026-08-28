@@ -126,6 +126,11 @@
     @media(max-width:760px){.photo-card:before{width:62%}.photo-card:after{width:67%}.photo-card img,.photo-card video{width:58%;height:58%}}
     .photo-card:hover{transform:none!important}
   </style>
+  <style>
+    .profile-links{grid-template-columns:repeat(3,1fr)}
+    .profile-link-linkedin{background:#12304b}
+    @media(max-width:780px){.profile-links{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
   <canvas id="global-three-scene" aria-hidden="true"></canvas>
@@ -148,6 +153,13 @@
         <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
         <div class="sun">RA<span>.</span></div><div class="note">01<br><small>BUILD / SOLVE</small></div>
       </div>
+    </section>
+
+    <section class="signal-strip wrap" aria-label="Kısa profil bilgileri" data-i18n-aria="signalStripAria">
+      <div class="signal-item"><span class="signal-dot"></span><small>STATUS</small><strong data-i18n="signalStatus">AKTİF</strong></div>
+      <div class="signal-item"><small>ODAK</small><strong data-i18n="signalFocus">WEB + ROBOTİK</strong></div>
+      <div class="signal-item"><small>ÜRETİM</small><strong data-i18n="signalBuild">FİKİR → PROTOTİP</strong></div>
+      <div class="signal-item"><small>MOD</small><strong data-i18n="signalMode">MERAKLI</strong></div>
     </section>
 
     <section class="media-section wrap" id="media">
@@ -266,6 +278,7 @@
       <div class="profile-links">
         <a class="profile-link profile-link-site" href="https://www.thenewsofkids.com/" target="_blank" rel="noreferrer"><span class="profile-link-label">01 · WEB</span><strong data-i18n="siteCard">Sitemi<br><i>ziyaret et.</i></strong><span class="profile-link-arrow">↗</span></a>
         <a class="profile-link profile-link-github" href="https://github.com/rizaaliemniyetli" target="_blank" rel="noreferrer"><span class="profile-link-label">02 · KOD</span><strong data-i18n="githubCard">GitHub profilimi<br><i>aç.</i></strong><span class="profile-link-arrow">↗</span></a>
+        <a class="profile-link profile-link-linkedin" href="https://www.linkedin.com/in/riza-ali-emniyetli-12a40938b/" target="_blank" rel="noreferrer"><span class="profile-link-label">03 · PROFİL</span><strong>LinkedIn profilimi<br><i>aç.</i></strong><span class="profile-link-arrow">↗</span></a>
       </div>
     </section>
 
@@ -370,7 +383,21 @@
     body.site-light-mode .profile-link,.site-light-mode .photo-card,.site-light-mode .channel-link,.site-light-mode .editor-panel,.site-light-mode .output-panel,.site-light-mode .mission-panel,.site-light-mode .tool-card,.site-light-mode .attraction,.site-light-mode .mega-card { background:rgba(255,255,255,.82); box-shadow:0 8px 22px #17252a18; }
     body.site-light-mode .hero-art { background:radial-gradient(circle at 50% 45%,#d8eeeb,#eef5f3 48%,#f4f7f5); box-shadow:0 10px 30px #17252a18; }
   </style>
+  <style>
+    .signal-strip{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+    .signal-item{position:relative;display:flex;align-items:center;gap:10px;min-height:66px;padding:14px 18px;border-right:1px solid var(--line);font-family:"Courier New",monospace}
+    .signal-item:last-child{border-right:0}.signal-item small{color:var(--muted);font-size:9px;letter-spacing:.12em}.signal-item strong{margin-left:auto;color:var(--ink);font-size:10px;letter-spacing:.05em}
+    .signal-item::after{content:'';position:absolute;right:18px;bottom:-1px;left:18px;height:2px;background:var(--cyan);transform:scaleX(0);transform-origin:left;transition:transform .25s ease}
+    .signal-item:hover::after,.signal-item:focus-within::after{transform:scaleX(1)}
+    .signal-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 4px color-mix(in srgb,var(--cyan) 16%,transparent);animation:signal-pulse 2s ease-in-out infinite}
+    @keyframes signal-pulse{50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--cyan) 5%,transparent),0 0 12px var(--cyan)}}
+    @media(prefers-reduced-motion:reduce){.signal-dot{animation:none}.signal-item::after{transition:none}}
+    @media(max-width:780px){.signal-strip{grid-template-columns:1fr 1fr}.signal-item{border-bottom:1px solid var(--line)}.signal-item:nth-child(2){border-right:0}.signal-item:nth-child(3),.signal-item:nth-child(4){border-bottom:0}.signal-item:nth-child(4){border-right:0}}
+  </style>
   <script>
+    Object.assign(translations.tr, { signalStripAria:'Kısa profil bilgileri', signalStatus:'AKTİF', signalFocus:'WEB + ROBOTİK', signalBuild:'FİKİR → PROTOTİP', signalMode:'MERAKLI' });
+    Object.assign(translations.en, { signalStripAria:'Quick profile details', signalStatus:'ACTIVE', signalFocus:'WEB + ROBOTICS', signalBuild:'IDEA → PROTOTYPE', signalMode:'CURIOUS' });
+    setLanguage(language.value);
     const siteModeToggle = document.querySelector('#site-mode-toggle');
     if (siteModeToggle) {
       if (localStorage.getItem('site-mode') === 'light') document.body.classList.add('site-light-mode');
